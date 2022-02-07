@@ -9,7 +9,7 @@ setup(
     author_email='rpa@unipart.io',
     maintainer='Ali Bendriss',
     maintainer_email='ali.bendriss@gmail.com',
-    url='https://github.com/unipart',
+    url='https://github.com/unipartdigital/gspread_rpa',
     packages=['gspread_rpa'],
     package_dir={'gspread_rpa': path.join('src', 'gspread_rpa')},
     package_data={'': [path.join('demo', '*demo*.py'), path.join('demo', 'Makefile')]},
