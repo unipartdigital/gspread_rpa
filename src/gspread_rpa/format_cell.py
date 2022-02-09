@@ -319,8 +319,10 @@ class CellFormat(Border, AlignVertical, AlignHorizontal,TextFormat, DictObject):
                 elif isinstance (e[k], dict):
                     apply (this, e[k])
         result = CellFormat()
-        borders = d.pop('borders')
-        d.update (borders)
+        """ flatten 'boders: {top, left ...}' into top, left ..."""
+        if 'borders' in d:
+            borders = d.pop('borders')
+            d.update (borders)
         apply(result, d)
         return result
 

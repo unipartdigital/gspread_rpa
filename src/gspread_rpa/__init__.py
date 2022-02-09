@@ -1,6 +1,8 @@
 import gspread
 from gspread.utils import rowcol_to_a1, a1_to_rowcol, ValueRenderOption, ValueInputOption
-from .gspreadsheet_retry import SpreadsheetRetry, WorksheetRetry, ClientRetry, exceptions, retry, error_quota_req
+from .gspreadsheet_retry import SpreadsheetRetry, WorksheetRetry, ClientRetry
+from .gspreadsheet_retry import exceptions, retry, error_quota_req
+from .format_cell import CellFormat
 import logging
 from re import compile, IGNORECASE
 from os import getenv
@@ -21,13 +23,22 @@ class CellIndex(object):
         return "<{} col:{} row:{}>".format(
             self.__class__.__name__,
             self.col,
-            self.row,
-        )
+            self.row)
+
+    def __hash__(self):
+        return hash((self.col, self.row))
+
+    def __eq__(self, other):
+        return  self.col == other.col and self.row == other.row
 
     """ cell label in A1 notation, e.g. 'B1' """
     def from_a1(self, label):
         self.row, self.col =  a1_to_rowcol (label)
         return self
+
+    def to_a1(self):
+        result = rowcol_to_a1(col=self.col, row=self.row)
+        return result
 
 class GridIndex(object):
     def __init__(self, start_col=None, start_row=None, end_col=None, end_row=None):
@@ -37,8 +48,13 @@ class GridIndex(object):
     def __repr__(self):
         return "<{} start:{} end:{}>".format(
             self.__class__.__name__,
-            repr(self.start), repr(self.end),
-        )
+            repr(self.start), repr(self.end))
+
+    def __hash__(self):
+        return hash((self.start.col, self.start.row, self.end.col, self.end.row))
+
+    def __eq__(self, other):
+        return  self.start == other.start and self.end == other.end
 
 class GoogleSheets(object):
 
@@ -68,6 +84,7 @@ class GoogleSheets(object):
             self.gc = ClientRetry(auth=self.gc.creds)
 
         self.client_ext = ClientRetry(self.gc.auth, self.gc.session)
+        self.placeholder = []
 
     """
     Creates a new spreadsheet.
@@ -546,4 +563,67 @@ class GoogleSheets(object):
                 cell_list[idx].value = v
                 idx += 1
         result = self.worksheet_cursor.update_cells(cell_list=cell_list, **kwargs)
+        return result
+
+
+    """
+    Cell Formatting
+    """
+
+    """
+    return a CellFormat object, the format the user entered for the cell at cell_index.
+    """
+    def get_cell_user_format (self, cell_index):
+        assert isinstance(cell_index, CellIndex)
+        s = rowcol_to_a1(col=cell_index.col, row=cell_index.row)
+        range = "'{}'!{}".format (self.worksheet_cursor.title, s)
+        logger.debug ("get_cell_format: {}".format(range))
+        resp = self.spreadsheet_cursor.fetch_sheet_metadata({
+            'includeGridData': True,
+            'ranges': [range],
+            'fields': 'sheets.data.rowData.values.userEnteredFormat'})
+        logger.debug ("get_cell_format: {}".format(resp))
+        data = resp['sheets'][0]['data'][0]
+        if 'rowData' in data:
+            return CellFormat().dict2o(data['rowData'][0]['values'][0]['userEnteredFormat'])
+        return CellFormat().dict2o({})
+
+    def prepare_cells_user_format (self, grid_index, cell_format):
+        self.placeholder.append ((grid_index, cell_format))
+
+    def cancel_cells_user_format (self, grid_index, cell_format):
+        self.placeholder = []
+
+    def apply_cells_user_format (self):
+        for i in self.placeholder:
+            idx = i[0]
+            fmt = i[1]
+            body = {}
+            requests = []
+            repeat_cell = {}
+            range = {}
+            range['range'] = {}
+            range['range']['sheetId'] = self.worksheet_cursor.id
+            if idx.start.row and idx.start.row > 0:
+                range['range']['startRowIndex'] = idx.start.row - 1
+            if idx.end.row and idx.end.row >= 1:
+                range['range']['endRowIndex'] = idx.end.row
+            if idx.start.col and idx.start.col > 0:
+                range['range']['startColumnIndex'] = idx.start.col - 1
+            if idx.end.col and idx.end.col >= 1:
+                range['range']['endColumnIndex'] = idx.end.col
+            cell = {}
+            cell['cell'] = {}
+            cell['cell']['userEnteredFormat'] = fmt.o2dict()
+            cell.update ({'fields' : 'userEnteredFormat'})
+            repeat_cell['repeatCell'] = dict (range)
+            repeat_cell['repeatCell'].update (cell)
+            requests.append (repeat_cell)
+        body['requests'] = requests
+        body.update ({'includeSpreadsheetInResponse': False})
+        body.update ({'responseRanges': []})
+        body.update ({'responseIncludeGridData': False})
+        logger.debug ("apply_cells_user_format: {}".format(body))
+        result = self.spreadsheet_cursor.batch_update(body)
+        logger.info (result)
         return result
