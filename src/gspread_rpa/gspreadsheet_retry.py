@@ -28,28 +28,28 @@ class ClientRetry(Client):
     def __init__(self, auth, session=None):
         super(type(self), self).__init__(auth=auth, session=session)
 
-    # @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_qps])
+    # @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_qps])
     # def open(self, title, folder_id=None):
     #     return super(type(self), self).open(title=title, folder_id=folder_id)
 
-    # @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_qps])
+    # @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_qps])
     # def open_by_key(self, key):
     #     return super(type(self), self).open_by_key(key=key)
 
-    # @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_qps])
+    # @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_qps])
     # def open_by_url(self, url):
     #     return super(type(self), self).open_by_url(url=url)
 
-    # @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_qps])
+    # @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_qps])
     # def openall(self, title=None):
     #     return super(type(self), self).openall(title=title)
 
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_qps, error_quota_req])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_qps, error_quota_req])
     def create(self, title, folder_id=None):
         logger.info ("Client create: {}".format(self))
         return super(type(self), self).create(title=title, folder_id=folder_id)
 
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_qps])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_qps])
     def revision_list (self, spreadsheet_id):
         # [
         #     {'kind': 'drive#revision', 'id': '1', 'mimeType': 'application/vnd.google-apps.spreadsheet',
@@ -88,7 +88,7 @@ class ClientRetry(Client):
     """
     return last revision or sprecified revision_id if found
     """
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_qps])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_qps])
     def revision_last(self, spreadsheet_id, revision_id=None):
         rev = self.revision_list (spreadsheet_id)
         rev = [SimpleNamespace(**n) for n in rev]
@@ -110,7 +110,7 @@ class ClientRetry(Client):
                    mime_type='application/x-vnd.oasis.opendocument.spreadsheet')
 
     """
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_qps])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_qps])
     def file_export(self, fd, spreadsheet_id, revision_id='head',
                     mime_type='application/x-vnd.oasis.opendocument.spreadsheet'):
         revision = self.revision_last(spreadsheet_id, revision_id)
@@ -138,7 +138,7 @@ class ClientRetry(Client):
       'mimeType': 'application/vnd.google-apps.spreadsheet'
     }
     """
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_qps])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_qps])
     def file_upload(self, fd, title='', mime_type='application/x-vnd.oasis.opendocument.spreadsheet'):
         headers = None
         params = {
@@ -173,7 +173,7 @@ class ClientRetry(Client):
     """
     delete previously uploaded user file. return True on success
     """
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_qps])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_qps])
     def file_delete (self, id):
         params = {}
         j = {}
@@ -183,23 +183,23 @@ class ClientRetry(Client):
 
 class SpreadsheetRetry(Spreadsheet):
 
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     def __init__(foo, self):
         super().__init__(self.client, properties=self._properties)
 
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     def worksheets(self):
         return super(type(self), self).worksheets()
 
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     def batch_update(self, body):
         return super(type(self), self).batch_update(body=body)
 
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     def fetch_sheet_metadata(self, params=None):
         return super(type(self), self).fetch_sheet_metadata(params=params)
 
-    # @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    # @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     # def del_worksheet(self, worksheet):
     #     logger.error ("del {}".format(self))
     #     return super(type(self), self).del_worksheet(self)
@@ -207,75 +207,75 @@ class SpreadsheetRetry(Spreadsheet):
     # """
     # gspread_formatting
     # """
-    # @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    # @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     # def get_default_format(self):
     #     return functions.get_default_format(spreadsheet=self)
 
 
 class WorksheetRetry(Worksheet):
 
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     def __init__(foo, self):
         super().__init__(spreadsheet=self.spreadsheet, properties=self._properties)
 
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     def resize(self, **kwargs):
         """resize worksheet to cols, rows count."""
         return super(type(self), self).resize(**kwargs)
 
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     def get_values(self, range_name=None, **kwargs):
         """Returns a list of lists containing all cells' values as strings."""
         return super(type(self), self).get_values(range_name)
 
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     def get_all_values(self, **kwargs):
         """Returns a list of lists containing all cells' values as strings."""
         return super(type(self), self).get_all_values(**kwargs)
 
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     def findall(self, query, in_row=None, in_column=None):
         """Finds all cells matching the query."""
         return super(type(self), self).findall(query=query, in_row=in_row, in_column=in_column)
 
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     def col_values(self, col, value_render_option=utils.ValueRenderOption.formatted):
         return super(type(self), self).col_values(col, value_render_option=value_render_option)
 
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     def row_values(self, row, value_render_option=utils.ValueRenderOption.formatted):
         return super(type(self), self).row_values(row, value_render_option=value_render_option)
 
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     def delete_rows(self, start_index, end_index=None):
         return super(type(self), self).delete_rows(start_index, end_index=end_index)
 
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     def update_cell(self, row, col, value):
         return super(type(self), self).update_cell(row=row, col=col, value=value)
 
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     def update_cells(self, cell_list, value_input_option=utils.ValueInputOption.raw):
         return super(type(self), self).update_cells(cell_list=cell_list,
                                                     value_input_option=value_input_option)
 
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     def batch_clear(self, ranges):
         return super(type(self), self).batch_clear(ranges=ranges)
 
-    @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     def range(self, name):
         return super(type(self), self).range(name=name)
 
     # """
     # gspread_formatting
     # """
-    # @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    # @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     # def get_effective_format(self, label):
     #     """Returns a CellFormat object or None representing the effective formatting directives,"""
     #     return functions.get_effective_format(worksheet=self, label=label)
 
-    # @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
+    # @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     # def get_user_entered_format(self, label):
     #     """Returns a CellFormat object or None representing the user-entered formatting directives,"""
     #     return functions.get_user_entered_format(worksheet=self, label=label)
