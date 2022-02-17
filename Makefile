@@ -33,6 +33,7 @@ gspread_rpa_demo:$(PIPM) $(PIPN) clean
 clean:
 	$(shell find . -type f -name "*~" -delete)
 	$(shell find . -type f -name "*.log" -delete)
+	$(shell find . -type f -name "*.log.[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]" -delete)
 	$(shell find . -type f -name "*.pyc" -delete)
 	$(shell find . -name "__pycache__" -delete)
 
