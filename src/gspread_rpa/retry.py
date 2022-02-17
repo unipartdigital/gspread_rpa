@@ -76,14 +76,14 @@ def retry(tries, delay=3, backoff=2, except_retry=[]):
 
 if __name__ == "__main__":
 
-    @retry (tries=3, delay=1, backoff=2)
+    @retry (tries=3, delay=1, backoff=2, except_retry=[('builtins.ZeroDivisionError', None)])
     def test_01():
         print ()
         for i in [1, 2, 3, 0, 4]:
             try:
                 print ("{}/{}={}".format(42, i, 42/i))
             except Exception as e:
-                print (e)
+                print ("exception name: {}.{}".format(e.__class__.__module__ ,  e.__class__.__name__))
                 raise e
 
     test_01()
