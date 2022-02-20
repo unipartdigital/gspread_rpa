@@ -61,18 +61,29 @@ if __name__ == "__main__":
     gidx = GridIndex(start_col=1, start_row=1, end_col=5, end_row=5)
     logger.info("gs.get_values({})".format(gidx))
     result = gs.get_values(grid_index=gidx)
+    exp = [
+        ['', '', '' , '' , '' ],
+        ['', '', '' , '' , '' ],
+        ['', '', '' , '' , '' ],
+        ['', '', '1', '2', '3'],
+        ['', '', '2', '4', '6']
+    ]
+    assert result == exp
     logger.info("")
     for i in result:
         logger.info ("result: {}".format(i))
-
+    result = gs.get_values()
     logger.info("")
-    gidx = None
-    logger.info("gs.get_values()".format(gidx))
+    for i in result:
+        logger.info ("result: {}".format(i))
+    logger.info("")
+    gidx = GridIndex(start_col=3, start_row=4, end_col=3, end_row=12)
+    logger.info("gs.get_values({})".format(gidx))
     result = gs.get_values(grid_index=gidx)
+    assert result == [['1'],['2'],['3'],['4'],['5'],['6'],['7'],['8'],['9']]
     logger.info("")
     for i in result:
         logger.info ("result: {}".format(i))
-
 
     gs.remove_permission (email=demo_email)
 

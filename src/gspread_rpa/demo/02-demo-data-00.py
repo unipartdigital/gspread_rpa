@@ -64,10 +64,17 @@ if __name__ == "__main__":
         if k == 2: break
         idx = [
             GridIndex(start_col=5, start_row=1, end_col=6, end_row=1),
-            CellIndex(col=8, row=2)
+            CellIndex(col=8, row=2), GridIndex(start_col=3, start_row=2, end_col=4, end_row=3)
         ]
         logger.info ("clear ({})".format (idx))
         gs.clear (idx)
+        exp = [
+            ['1', '2', '3', '4' , ''   , ''  , '7'  , '8' , '9' ],
+            ['2', '4', '', ''   , '10' , '12', '14' , ''  , '18'],
+            ['3', '6', '', ''   , '15' , '18', '21' , '24', '27']]
+
+        res = gs.get_values(idx)
+        assert gs.get_values(idx) == exp
 
     gs.remove_permission (email=demo_email)
 

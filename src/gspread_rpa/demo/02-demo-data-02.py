@@ -74,7 +74,7 @@ if __name__ == "__main__":
     logger.info ("")
     logger.info ("gs.lookup_match (match={}, search_direction='x'".format(matches))
     match_location = gs.lookup_match (match=matches, search_direction='x')
-    logger.info ("Match location: {}".format(match_location[-1] if match_location else None))
+    logger.info ("Match location: {}".format(match_location if match_location else None))
     data_at_loc = gs.get_values(match_location[-1])
     logger.info ("get values at {}: {}".format(match_location[-1], data_at_loc))
     assert data_at_loc == [['20', '24', '28', '32']], "data at {}".format(match_location[-1])
