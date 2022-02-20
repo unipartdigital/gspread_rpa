@@ -2,7 +2,7 @@ import gspread
 from gspread.utils import rowcol_to_a1, a1_to_rowcol, ValueRenderOption, ValueInputOption
 from .gspreadsheet_retry import SpreadsheetRetry, WorksheetRetry, ClientRetry
 from .gspreadsheet_retry import exceptions, retry, error_quota_req
-from .format_cell import CellFormat
+from .format_cell import CellFormat, ColorMap
 import logging
 from re import compile, IGNORECASE
 from os import getenv
@@ -16,8 +16,8 @@ logger = logging.getLogger('GoogleSheets')
 
 class CellIndex(object):
     def __init__(self, col=None, row=None):
-        self.col=col
-        self.row=row
+        self.col=int(col) if col else None
+        self.row=int(row) if row else None
 
     def __repr__(self):
         return "<{} col:{} row:{}>".format(
@@ -398,37 +398,29 @@ class GoogleSheets(object):
             cell_find_list += self.worksheet_cursor.findall(match)
         logger.debug("findall: {}".format(cell_find_list))
         if search_direction.lower() in ('col', 'x'):
-            cell_find_list.sort(key=lambda x: x.col, reverse=False)
-            cell_find_list.sort(key=lambda x: x.row, reverse=False)
+            cell_find_list.sort(key=lambda x: (int(x.row), int(x.col)), reverse=False)
         else:
-            cell_find_list.sort(key=lambda x: x.row, reverse=False)
-            cell_find_list.sort(key=lambda x: x.col, reverse=False)
-        logger.debug ("sorted: {}".format(cell_find_list))
+            cell_find_list.sort(key=lambda x: (int(x.col), int(x.row)), reverse=False)
+        # for l in cell_find_list:
+        #     logger.info ("sorted: {}".format(l))
 
         result=[]
         ridx=GridIndex()
-        for cur, nxt in zip(cell_find_list, cell_find_list[1:] + [None]):
-            # logger.info ("cur: {}".format(cur))
-            # logger.info ("nxt: {}".format(nxt))
-
-            if ridx.start.col is None and ridx.start.row is None:
-                ridx.start.col = cur.col
-                ridx.start.row = cur.row
-            if search_direction in ('col', 'x') and hasattr(nxt, 'row') and cur.row == nxt.row:
-                pass
-            elif search_direction in ('row', 'y') and hasattr(nxt, 'col') and cur.col == nxt.col:
-                pass
+        for cur, nxt in zip(cell_find_list, cell_find_list[1:] + [CellIndex()]):
+            # logger.info ("cur: {} nxt: {}".format(cur, nxt))
+            ridx.start = cur if (ridx.start.row, ridx.start.col) == (None, None) else ridx.start
+            if  cur.col == nxt.col and cur.row + 1 == nxt.row:
+                continue
+            elif  cur.row == nxt.row and cur.col + 1 == nxt.col:
+                continue
             else:
-                ridx.end.col=cur.col
-                ridx.end.row=cur.row
-                result.append(ridx)
-                ridx=GridIndex()
-
+                ridx.end = cur
+                result.append (GridIndex(ridx.start.col, ridx.start.row, ridx.end.col, ridx.end.row))
+                ridx = GridIndex()
         if search_direction.lower() in ('col', 'x'):
-            result.sort(key=lambda x: x.end.col - x.start.col, reverse=False)
+            result.sort(key=lambda x: (x.end.col - x.start.col), reverse=False)
         else:
-            result.sort(key=lambda x: x.end.row - x.start.row, reverse=False)
-
+            result.sort(key=lambda x: (x.end.row - x.start.row), reverse=False)
         logger.debug ("lookup_match result: {}".format(result))
         return result
 
@@ -588,18 +580,53 @@ class GoogleSheets(object):
             return CellFormat().dict2o(data['rowData'][0]['values'][0]['userEnteredFormat'])
         return CellFormat().dict2o({})
 
+    """
+    return a list of list of CellFormat object if
+    the format the user entered for the cells at grid_index range exist otherwise ''
+    """
+    def get_cells_user_format (self, grid_index):
+        assert isinstance(grid_index, GridIndex)
+        s = rowcol_to_a1(col=grid_index.start.col, row=grid_index.start.row)
+        e = rowcol_to_a1(col=grid_index.end.col, row=grid_index.end.row)
+        range = "'{}'!{}:{}".format (self.worksheet_cursor.title, s, e)
+        logger.info ("get_cell_format: {}".format(range))
+        result =  []
+        resp = self.spreadsheet_cursor.fetch_sheet_metadata({
+            'includeGridData': True,
+            'ranges': [range],
+            'fields': 'sheets.data.rowData.values.userEnteredFormat'})
+        for data in resp['sheets']:
+            for row_data in data['data']:
+                if 'rowData' in row_data:
+                    for values in row_data['rowData']:
+                        result_col = []
+                        if 'values' in values:
+                            for userEnteredFormat in values['values']:
+                                if 'userEnteredFormat' in userEnteredFormat:
+                                    tmp = CellFormat().dict2o(userEnteredFormat['userEnteredFormat'])
+                                    result_col.append (tmp)
+                                else:
+                                    result_col.append ('')
+                        result.append (result_col)
+            # for r in result:
+            #     logger.info (r)
+            #     for c in r:
+            #         if isinstance(c, CellFormat):
+            #             logger.info(c.o2dict())
+        return result
+
     def prepare_cells_user_format (self, grid_index, cell_format):
-        self.placeholder.append ((grid_index, cell_format))
+        self.placeholder.append((grid_index, cell_format))
 
     def cancel_cells_user_format (self, grid_index, cell_format):
         self.placeholder = []
 
     def apply_cells_user_format (self):
+        requests = []
+        body = {}
         for i in self.placeholder:
             idx = i[0]
             fmt = i[1]
-            body = {}
-            requests = []
             repeat_cell = {}
             range = {}
             range['range'] = {}
@@ -619,6 +646,7 @@ class GoogleSheets(object):
             repeat_cell['repeatCell'] = dict (range)
             repeat_cell['repeatCell'].update (cell)
             requests.append (repeat_cell)
+        if requests == []: return {}
         body['requests'] = requests
         body.update ({'includeSpreadsheetInResponse': False})
         body.update ({'responseRanges': []})
@@ -626,4 +654,5 @@ class GoogleSheets(object):
         logger.debug ("apply_cells_user_format: {}".format(body))
         result = self.spreadsheet_cursor.batch_update(body)
         logger.info (result)
+        self.placeholder = []
         return result
