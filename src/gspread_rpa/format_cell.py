@@ -252,7 +252,7 @@ class TextRotation(DictObject):
     def vertical(self, vertical):
         setattr(self, '_vertical', vertical)
 
-class CellFormat(Border, AlignVertical, AlignHorizontal,TextFormat, DictObject):
+class CellFormat(Border, AlignVertical, AlignHorizontal, TextFormat, DictObject):
 
     keys = [('_backgroundColor', 'backgroundColor'),
             ('top','borders,top') , ('bottom','borders,bottom'),
@@ -261,13 +261,16 @@ class CellFormat(Border, AlignVertical, AlignHorizontal,TextFormat, DictObject):
             ('_wrapStrategy','wrapStrategy'), ('_textDirection','textDirection'),
             ('text', 'textFormat'), ('text_rotation', 'textRotation')]
 
-    def __init__(self):
-        self.top = Border()
-        self.bottom = Border()
-        self.left = Border()
-        self.right = Border()
-        self.text = TextFormat()
-        self.text_rotation = TextRotation()
+    def __init__(self, other=None):
+        if other:
+            self = self.dict2o(other.o2dict())
+        else:
+            self.top = Border()
+            self.bottom = Border()
+            self.left = Border()
+            self.right = Border()
+            self.text = TextFormat()
+            self.text_rotation = TextRotation()
 
     @property
     def textFormat (self):
@@ -276,6 +279,16 @@ class CellFormat(Border, AlignVertical, AlignHorizontal,TextFormat, DictObject):
     @property
     def textRotation(self):
         return self.text_rotation
+
+    @property
+    def background_color_name (self):
+        if hasattr (self, '_backgroundColor'):
+            tmp = getattr (self, '_backgroundColor')
+            r = tmp['red']   if 'red'   in tmp else 0.0
+            g = tmp['green'] if 'green' in tmp else 0.0
+            b = tmp['blue']  if 'blue'  in tmp else 0.0
+            return ColorMap().find_name (r, g, b)
+        return ''
 
     def background_color (self, name, opacity=1.0):
         setattr(self, '_backgroundColor', ColorMap().color(name=name, opacity=opacity))
@@ -359,3 +372,4 @@ if __name__ == "__main__":
     assert cf01.json_dump() != "{}"
     assert cf01.json_dump() == new_o.json_dump()
     assert CellFormat().json_dump() == "{}"
+    assert cf01.background_color_name == new_o.background_color_name
