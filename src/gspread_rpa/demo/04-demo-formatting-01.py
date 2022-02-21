@@ -61,6 +61,9 @@ if __name__ == "__main__":
     # reset formatting
     gs.prepare_cells_user_format (GridIndex(1,20,1,20), CellFormat())
     gs.apply_cells_user_format()
+    cf_mat = gs.get_cells_user_format (GridIndex(1,20,1,20))
+    logger.info ("empty cf_mat: {}".format(cf_mat))
+    assert cf_mat == []
 
     data = [[i*j for i in range(1,10)] for j in range(1,10)]
     logger.info ("data:\n {}".format("\n".join(["{}".format(i) for i in data])))
