@@ -11,7 +11,7 @@ pkg_data = [os.path.join('demo', '*demo*.py'),
 setup(
     name='gspread-rpa',
     version=__version__,
-    description='Python gspread google spreadsheet API wrapper',
+    description='a gspread (Python API for Google Sheets) hight level wrapper',
     author='Unipart Digital',
     author_email='rpa@unipart.io',
     maintainer='Ali Bendriss',

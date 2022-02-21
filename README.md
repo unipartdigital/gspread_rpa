@@ -1,4 +1,6 @@
-# gspread_rpa a gspread hight level wrapper
+# gspread_rpa
+
+ a [gspread](https://docs.gspread.org/en/latest/) (Python API for Google Sheets) hight level wrapper
 
 ## Object:
 
@@ -7,7 +9,7 @@
 * GoogleSheets
   * embedded spreadsheets and worksheets as well as revision download upload
 * CellFormat
-  * basic cell formating get and set
+  * function call cells formating
 
 ## Usage Examples
 
