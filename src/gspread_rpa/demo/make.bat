@@ -24,6 +24,7 @@ echo off
 (for /f %%a in ('dir /b "*.py.log.*"') do echo "DELETE %%a" && del "%%a" ) 2> nul
 (for /f %%a in ('dir /b "*.py.done"' ) do echo "DELETE %%a" && del "%%a" ) 2> nul
 (for /f %%a in ('dir /b "*~"'        ) do echo "DELETE %%a" && del "%%a" ) 2> nul
+(for /f %%a in ('dir /b "%TMP%\??-demo-revision-*.*"') do echo "DELETE %TMP%\%%a" && del "%TMP%\%%a" ) 2> nul
 goto end
 
 :exiterror
