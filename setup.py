@@ -1,5 +1,11 @@
 from setuptools import setup
-from os import path
+from os import path, name
+
+pkg_data = [path.join('demo', '*demo*.py')]
+if name == 'posix':
+    pkg_data.append( path.join('demo', 'Makefile') )
+else:
+    pkg_data.append( path.join('demo', 'make.bat') )
 
 setup(
     name='gspread-rpa',
@@ -12,7 +18,7 @@ setup(
     url='https://github.com/unipartdigital/gspread_rpa',
     packages=['gspread_rpa'],
     package_dir={'gspread_rpa': path.join('src', 'gspread_rpa')},
-    package_data={'': [path.join('demo', '*demo*.py'), path.join('demo', 'Makefile')]},
+    package_data={'': pkg_data},
     requires=['gspread'],
     license='GPLv3',
     classifiers=[
