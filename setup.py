@@ -4,11 +4,9 @@ import os, sys
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'src'))
 from gspread_rpa import __version__
 
-pkg_data = [os.path.join('demo', '*demo*.py')]
-if os.name == 'posix':
-    pkg_data.append( os.path.join('demo', 'Makefile') )
-else:
-    pkg_data.append( os.path.join('demo', 'make.bat') )
+pkg_data = [os.path.join('demo', '*demo*.py'),
+            os.path.join('demo', 'Makefile'),
+            os.path.join('demo', 'make.bat')]
 
 setup(
     name='gspread-rpa',

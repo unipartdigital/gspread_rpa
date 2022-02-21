@@ -30,12 +30,21 @@ endif
 gspread_rpa_demo:$(PIPM) $(PIPN) clean
 	make -C src/gspread_rpa/demo
 
+dist:
+	$(PYTHON) -m build -n
+
 clean:
 	$(shell find . -type f -name "*~" -delete)
 	$(shell find . -type f -name "*.log" -delete)
 	$(shell find . -type f -name "*.log.[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]" -delete)
 	$(shell find . -type f -name "*.pyc" -delete)
 	$(shell find . -name "__pycache__" -delete)
+
+distclean: clean
+	$(shell find "gspread_rpa.egg-info" -type f -delete)
+	$(shell find . -name "gspread_rpa.egg-info" -delete)
+	$(shell find "dist" -type f -delete)
+	$(shell find . -name "dist" -delete)
 
 help:
 	@echo
