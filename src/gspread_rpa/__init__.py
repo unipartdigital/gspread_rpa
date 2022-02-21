@@ -11,6 +11,8 @@ from os import getenv
 GoogleSheets HighLevel wrapper around gspread
 """
 
+__version__ = "1.0.0"
+
 logger = logging.getLogger('GoogleSheets')
 
 

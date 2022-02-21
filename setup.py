@@ -1,15 +1,18 @@
 from setuptools import setup
-from os import path, name
+import os, sys
 
-pkg_data = [path.join('demo', '*demo*.py')]
-if name == 'posix':
-    pkg_data.append( path.join('demo', 'Makefile') )
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'src'))
+from gspread_rpa import __version__
+
+pkg_data = [os.path.join('demo', '*demo*.py')]
+if os.name == 'posix':
+    pkg_data.append( os.path.join('demo', 'Makefile') )
 else:
-    pkg_data.append( path.join('demo', 'make.bat') )
+    pkg_data.append( os.path.join('demo', 'make.bat') )
 
 setup(
     name='gspread-rpa',
-    version='1.0.0',
+    version=__version__,
     description='Python gspread google spreadsheet API wrapper',
     author='Unipart Digital',
     author_email='rpa@unipart.io',
@@ -17,7 +20,7 @@ setup(
     maintainer_email='ali.bendriss@gmail.com',
     url='https://github.com/unipartdigital/gspread_rpa',
     packages=['gspread_rpa'],
-    package_dir={'gspread_rpa': path.join('src', 'gspread_rpa')},
+    package_dir={'gspread_rpa': os.path.join('src', 'gspread_rpa')},
     package_data={'': pkg_data},
     requires=['gspread'],
     license='GPLv3',
