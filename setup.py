@@ -23,13 +23,11 @@ setup(
     requires=['gspread'],
     license='GPLv3',
     classifiers=[
-        'Development Status :: 42 - Beta',
         'Environment :: Console',
         'Environment :: Web Environment',
         'Intended Audience :: End Users/Desktop',
         'Intended Audience :: Developers',
         'Intended Audience :: System Administrators',
-        'License :: OSI Approved :: GNU GENERAL PUBLIC LICENSE Version 3',
         'Operating System :: MacOS :: MacOS X',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX',
