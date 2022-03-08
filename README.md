@@ -25,6 +25,13 @@ from gspread_rpa import CellIndex, GridIndex, GoogleSheets, CellFormat
  [Basic usage examples](src/gspread_rpa/demo/)
 
 
+### Environment variable
+
+* GOOGLESHEETS_RUN_MODE="user"
+  * use credentials.json
+* GOOGLESHEETS_RUN_MODE="service"
+  * use service_account.json
+
 ## Contribute and contact
 
 * via the [github repository](https://github.com/unipartdigital/gspread_rpa)

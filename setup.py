@@ -8,10 +8,15 @@ pkg_data = [os.path.join('demo', '*demo*.py'),
             os.path.join('demo', 'Makefile'),
             os.path.join('demo', 'make.bat')]
 
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
+
 setup(
     name='gspread-rpa',
     version=__version__,
     description='a gspread (Python API for Google Sheets) hight level wrapper',
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     author='Unipart Digital',
     author_email='rpa@unipart.io',
     maintainer='Ali Bendriss',
