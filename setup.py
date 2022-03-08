@@ -1,7 +1,7 @@
 from setuptools import setup
 import os, sys
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'src'))
+sys.path = [os.path.join(os.path.dirname(os.path.abspath(__file__)), 'src')] + sys.path
 from gspread_rpa import __version__
 
 pkg_data = [os.path.join('demo', '*demo*.py'),
