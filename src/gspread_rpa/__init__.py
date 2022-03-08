@@ -11,7 +11,7 @@ from os import getenv
 GoogleSheets HighLevel wrapper around gspread
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 logger = logging.getLogger('GoogleSheets')
 
@@ -83,7 +83,7 @@ class GoogleSheets(object):
             self.gc = ClientRetry(auth=self.gc.auth)
         else:
             self.gc = gspread.oauth()
-            self.gc = ClientRetry(auth=self.gc.creds)
+            self.gc = ClientRetry(auth=gspread.auth.load_credentials())
 
         self.client_ext = ClientRetry(self.gc.auth, self.gc.session)
         self.placeholder = []
