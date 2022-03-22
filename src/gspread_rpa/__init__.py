@@ -109,7 +109,7 @@ class GoogleSheets(object):
             self.cell_current_position = (1, 1)
             self.spreadsheet_revision = None
         else:
-            raise NotFound ("delete spreadsheet not open/created")
+            raise self.NotFound ("delete spreadsheet not open/created")
 
     """
     Give permission to a spreadsheet
@@ -242,23 +242,33 @@ class GoogleSheets(object):
         return result
 
     """
+    given one of the supported format extension,
+    return a mime type suitable for the file _export function
+    """
+    def ext2mime (self, extension):
+        mimes = {
+            'csv': 'text/csv',
+            'ods': 'application/vnd.oasis.opendocument.spreadsheet',
+            'pdf': 'application/pdf',
+            'tsv': 'text/tab-separated-values',
+            'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'zip': 'application/zip',
+        }
+        logger.debug ("ext2mime: {}".format(extension.lower()))
+        if extension.lower() in mimes:
+            return mimes[extension.lower()]
+        else:
+            raise self.NotFound ("no mime map for {}".format(extension))
+
+    """
     Export a specific revision, or last modified if revision_id=None
     usage:
        with open ('/tmp/demo-revision-1.pdf', 'wb') as fd:
         gs.file_export (fd, revision_id=1, mime_type='application/pdf')
-
-    mime_type                                                        format
-
-    application/pdf                                                   pdf
-    application/vnd.oasis.opendocument.spreadsheet                    ods
-    application/vnd.openxmlformats-officedocument.spreadsheetml.sheet xlsx
-    application/x-vnd.oasis.opendocument.spreadsheet                  ods
-    application/zip                                                   zip
-    text/csv                                                          csv
-    text/tab-separated-values                                         tsv
     """
-    def file_export(self, fd, revision_id='head',
-                    mime_type='application/x-vnd.oasis.opendocument.spreadsheet'):
+    def file_export(self, fd, revision_id='head', mime_type=None, extension=None):
+        if extension:
+            mime_type = self.ext2mime(extension)
         result = self.client_ext.file_export(
             fd, spreadsheet_id=self.spreadsheet_cursor.id, revision_id=revision_id, mime_type=mime_type)
         return result
@@ -267,8 +277,10 @@ class GoogleSheets(object):
     upload content of file descripor fd on success return new GoogleSheets if return_object == True
     else a file ressource id like '1qhNTwrt6BGcOX3c3DqaINMLeIsc-ceHJ'
     """
-    def file_upload(self, fd, title='', mime_type='application/x-vnd.oasis.opendocument.spreadsheet',
+    def file_upload(self, fd, title='', mime_type=None, extension=None,
                     return_object=True):
+        if extension:
+            mime_type= self.ext2mime(extension)
         new_id = self.client_ext.file_upload(fd, title=title, mime_type=mime_type)
         if return_object:
             new_object = GoogleSheets(run_mode=self.run_mode)
