@@ -199,6 +199,10 @@ class SpreadsheetRetry(Spreadsheet):
     def fetch_sheet_metadata(self, params=None):
         return super(type(self), self).fetch_sheet_metadata(params=params)
 
+    @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
+    def _spreadsheets_sheets_copy_to(self, sheet_id, destination_spreadsheet_id):
+        return super(type(self), self)._spreadsheets_sheets_copy_to(sheet_id, destination_spreadsheet_id)
+
     # @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     # def del_worksheet(self, worksheet):
     #     logger.error ("del {}".format(self))
