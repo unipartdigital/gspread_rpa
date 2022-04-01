@@ -1,11 +1,13 @@
 import gspread
 from gspread.utils import rowcol_to_a1, a1_to_rowcol, ValueRenderOption, ValueInputOption
+from gspread.auth import local_server_flow
+from gspread.auth import DEFAULT_SCOPES, DEFAULT_CREDENTIALS_FILENAME, DEFAULT_AUTHORIZED_USER_FILENAME
 from .gspreadsheet_retry import SpreadsheetRetry, WorksheetRetry, ClientRetry
 from .gspreadsheet_retry import exceptions, retry, error_quota_req
 from .format_cell import CellFormat, ColorMap
 import logging
 from re import compile, IGNORECASE
-from os import getenv
+from os import getenv, unlink, path
 
 """
 GoogleSheets HighLevel wrapper around gspread
@@ -66,12 +68,19 @@ class GoogleSheets(object):
     class NotFound (Exception):
         pass
 
+    class InitError (Exception):
+        pass
+
     """
     run_mode: service for service account, user for oauth (require user interaction)
     if not set at object creation like gs = GoogleSheets(run_mode='service')
     will take the valie from GOOGLESHEETS_RUN_MODE env variable and default to 'service'
     """
-    def __init__(self, run_mode=''):
+    def __init__(self, run_mode='',
+                 scopes=DEFAULT_SCOPES,
+                 flow=local_server_flow,
+                 credentials_filename=DEFAULT_CREDENTIALS_FILENAME,
+                 authorized_user_filename=DEFAULT_AUTHORIZED_USER_FILENAME):
         assert run_mode in (None, '', 'service', 'user'), "run_mode set and not in 'service' or 'user'"
         self.run_mode = run_mode if run_mode else getenv('GOOGLESHEETS_RUN_MODE', 'service')
         self.spreadsheet_cursor = None
@@ -82,9 +91,29 @@ class GoogleSheets(object):
             self.gc = gspread.service_account()
             self.gc = ClientRetry(auth=self.gc.auth)
         else:
-            self.gc = gspread.oauth()
-            self.gc = ClientRetry(auth=gspread.auth.load_credentials())
-
+            for i in [1, 2]:
+                self.gc = gspread.oauth(
+                    scopes=scopes,
+                    flow=flow,
+                    credentials_filename=credentials_filename,
+                    authorized_user_filename=authorized_user_filename
+                )
+                self.gc = ClientRetry(auth=gspread.auth.load_credentials())
+                # validate grant by attempting a request
+                try:
+                    tmp = self.gc.list_spreadsheet_files(title='')
+                except Exception as e:
+                    logger.error (dir(e))
+                    if 'RefreshError' in type(e).__name__:
+                        if path.exists (authorized_user_filename):
+                            unlink (authorized_user_filename)
+                            continue
+                    else:
+                        raise e
+                else:
+                    break
+            else:
+                raise self.InitError from None
         self.client_ext = ClientRetry(self.gc.auth, self.gc.session)
         self.placeholder = []
 
@@ -406,7 +435,7 @@ class GoogleSheets(object):
         assert self.worksheet_cursor, "worksheet not open"
         match_list = [
             compile(default_regex.format(m), IGNORECASE) for m in match]
-        logger.info ("match_list: {}".format (match_list))
+        logger.debug ("match_list: {}".format (match_list))
         cell_find_list = []
         for match in match_list:
             cell_find_list += self.worksheet_cursor.findall(match)
