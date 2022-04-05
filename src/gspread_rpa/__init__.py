@@ -118,13 +118,27 @@ class GoogleSheets(object):
         self.placeholder = []
 
     """
+    id
+    """
+    def spreadsheet_id(self):
+        if self.spreadsheet_cursor:
+            return self.spreadsheet_cursor.id
+
+    """
+    title
+    """
+    def spreadsheet_title(self):
+        if self.spreadsheet_cursor:
+            return self.spreadsheet_cursor.title
+
+    """
     Creates a new spreadsheet.
     """
     def create(self, title, folder_id=None):
         if self.spreadsheet_cursor is None:
             self.spreadsheet_cursor = SpreadsheetRetry(self.gc.create(title=title, folder_id=folder_id))
             logger.info ("create: {}".format(self.spreadsheet_cursor))
-            return self.spreadsheet_cursor
+
 
     """
     Deletes a spreadsheet.
@@ -185,27 +199,49 @@ class GoogleSheets(object):
             return self.spreadsheet_cursor.list_permissions()
 
     """
-    Open a spreadsheet
+    """
+    def is_open(self):
+        return self.spreadsheet_cursor is not None
+
+    """
+    may be used to open an other spreadsheet reusing an existing GoogleSheet instance
+    """
+    def close(self):
+        self.spreadsheet_cursor = None
+        self.worksheet_cursor = None
+        self.cell_current_position = (1, 1)
+        self.spreadsheet_revision = None
+
+    """
+    Open a spreadsheet try in order 'url', id and then title
+    if nay tab_name, tab_position, tab_id is set open the worsheet trying first
+    'tab_id', 'tab_name', 'tab_position' and then tab '0'
     """
     @retry(tries=15, delay=5, backoff=2, except_retry=[error_quota_req])
     def open (self, title=None, url=None, key=None, tab_name=None, tab_position=None, tab_id=None):
         if self.spreadsheet_cursor is None:
             assert any ([title, url, key]), "opening a spreadsheet require a title, an url or a key"
-            if title:
+            for i in ['url', 'key', 'title']:
                 try:
-                    self.spreadsheet_cursor = SpreadsheetRetry(self.gc.open(title))
+                    if i == 'url' and url:
+                        self.spreadsheet_cursor = SpreadsheetRetry(self.gc.open_by_url(url))
+                    if i == 'key' and key:
+                        self.spreadsheet_cursor = SpreadsheetRetry(self.gc.open_by_key(key))
+                    if i == 'title' and title:
+                        self.spreadsheet_cursor = SpreadsheetRetry(self.gc.open(title))
+                    if self.spreadsheet_cursor is None:
+                        continue
+                    else:
+                        break
                 except exceptions.SpreadsheetNotFound as e:
-                    raise self.NotFound from e
-            if url:
-                try:
-                    self.spreadsheet_cursor = SpreadsheetRetry(self.gc.open_by_url(url))
-                except exceptions.SpreadsheetNotFound as e:
-                    raise self.NotFound from e
-            if key:
-                try:
-                    self.spreadsheet_cursor = SpreadsheetRetry(self.gc.open_by_key(key))
-                except exceptions.SpreadsheetNotFound as e:
-                    raise self.NotFound from e
+                    continue
+                except Exception as e:
+                    logger.error (e)
+                    raise
+                else:
+                    break
+
+            if not self.spreadsheet_cursor: raise self.NotFound
             logger.info ("open spreadsheet: {}".format(self.spreadsheet_cursor))
             try:
                 self.spreadsheet_revision = self.client_ext.revision_last(
@@ -220,40 +256,52 @@ class GoogleSheets(object):
                 pass
                 # logger.info ("spreadsheet_revision: {}".format(self.spreadsheet_revision))
 
-            if not any ([tab_name, tab_position, tab_id]): return self.spreadsheet_cursor
+            if not any ([tab_name, tab_position, tab_id]): return
 
         self.worksheet_cursor = None
-        if tab_name:
-            logger.debug ("open tab name {}".format(tab_name))
-            self.worksheet_cursor = [
-                w for w in [
-                    w for w in self.worksheets()
-                ] if w.title.strip().lower() in [
-                    n.strip().lower() for n in [tab_name]]]
-            assert self.worksheet_cursor, "error in open tab name: {}".format(tab_name)
-            self.worksheet_cursor = self.worksheet_cursor[0]
-        elif tab_id:
-            tab_id = int (tab_id)
-            logger.debug ("open tab id {}".format(tab_id))
-            self.worksheet_cursor = [
-                w for w in [
-                    w for w in self.worksheets()
-                ] if w.id in [tab_id]]
-            assert self.worksheet_cursor, "error in open tab id: {}".format([tab_id])
-            self.worksheet_cursor = self.worksheet_cursor[0]
-        elif tab_position:
-            logger.debug ("open tab pos {}".format(tab_position))
-            self.worksheet_cursor = [
-                (i,w) for (i,w) in
-                enumerate(self.worksheets()) if i == int(tab_position)]
-            assert self.worksheet_cursor, "error in open tab position: {}".format(tab_position)
+        for i in ['tab_id', 'tab_name', 'tab_position']:
+            try:
+                if i == 'tab_name' and tab_name:
+                    logger.debug ("open tab name {}".format(tab_name))
+                    self.worksheet_cursor = [
+                        w for w in [
+                            w for w in self.worksheets()
+                        ] if w.title.strip().lower() in [
+                            n.strip().lower() for n in [tab_name]]]
+                    assert self.worksheet_cursor, "error in open tab name: {}".format(tab_name)
+                    self.worksheet_cursor = self.worksheet_cursor[0]
+                if i == 'tab_id' and tab_id:
+                    tab_id = int (tab_id)
+                    logger.debug ("open tab id {}".format(tab_id))
+                    self.worksheet_cursor = [
+                        w for w in [
+                            w for w in self.worksheets()
+                        ] if w.id in [tab_id]]
+                    assert self.worksheet_cursor, "error in open tab id: {}".format([tab_id])
+                    self.worksheet_cursor = self.worksheet_cursor[0]
+                if i == 'tab_position' and tab_position:
+                    logger.debug ("open tab pos {}".format(tab_position))
+                    self.worksheet_cursor = [
+                        (i,w) for (i,w) in
+                        enumerate(self.worksheets()) if i == int(tab_position)]
+                    assert self.worksheet_cursor, "error in open tab position: {}".format(tab_position)
+                if self.worksheet_cursor is None:
+                    continue
+                else:
+                    break
+            except AssertionError as e:
+                logger.error (e)
+                continue
+            except Exception as e:
+                logger.error (e)
+            else:
+                break
         else:
-            logger.debug ("open tab pos {}".format(0))
+            logger.debug ("warning open tab pos {}".format(0))
             self.worksheet_cursor = [
                 (i,w) for (i,w) in
                 enumerate(self.worksheets()) if i == int(0)]
             assert self.worksheet_cursor, "error in open tab position: {}".format(0)
-        return self.worksheet_cursor
 
     """
     return a list with all the fields for each revision available
@@ -296,8 +344,12 @@ class GoogleSheets(object):
         gs.file_export (fd, revision_id=1, mime_type='application/pdf')
     """
     def file_export(self, fd, revision_id='head', mime_type=None, extension=None):
-        if extension:
+        if not mime_type and extension:
             mime_type = self.ext2mime(extension)
+        elif not mime_type and not extension:
+            if fd.name:
+                mime_type = self.ext2mime(fd.name.rpartition('.')[-1])
+        assert mime_type, "unknow mime_type"
         result = self.client_ext.file_export(
             fd, spreadsheet_id=self.spreadsheet_cursor.id, revision_id=revision_id, mime_type=mime_type)
         return result
