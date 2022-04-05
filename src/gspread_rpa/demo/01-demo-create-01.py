@@ -6,7 +6,9 @@ import os, sys
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+if os.path.exists(
+        os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'), 'gspread_rpa')):
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 from gspread_rpa import CellIndex, GridIndex, GoogleSheets
 
 demo_email = 'test@example.org'
@@ -30,21 +32,27 @@ if __name__ == "__main__":
     title=os.path.basename(__file__.replace (".py", ''))
 
     runs = [i for i in range(1,4)]
+    gs = GoogleSheets()
+
     for run in runs:
         logger.info ("run {}/{}".format(run, runs[-1]))
-        gs = GoogleSheets()
 
         """
         open or create a new spreadsheet
         """
 
         try:
+            logger.warning ("gs.open (title={})".format(title))
             gs.open (title=title)
         except gs.NotFound as e:
+            logger.warning (e)
             if run == runs[0]:
                 gs.create (title=title)
             else:
-                raise ProgramError
+                raise RuntimeError
+
+        logger.info ("id   : {}".format(gs.spreadsheet_id()))
+        logger.info ("title: {}".format(gs.spreadsheet_title()))
 
         gs.give_permission (email=demo_email, perm_type='user', role='writer')
 
@@ -82,3 +90,5 @@ if __name__ == "__main__":
             gs.delete_worksheet()
         if run == runs[-1]:
             gs.delete_spreadsheet()
+        else:
+            gs.close()

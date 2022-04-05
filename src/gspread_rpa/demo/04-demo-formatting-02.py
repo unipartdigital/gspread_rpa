@@ -7,7 +7,9 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 from random import choices
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+if os.path.exists(
+        os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'), 'gspread_rpa')):
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 from gspread_rpa import CellIndex, GridIndex, GoogleSheets, CellFormat, ColorMap
 
 demo_email = 'test@example.org'

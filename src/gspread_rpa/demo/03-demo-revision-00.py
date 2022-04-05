@@ -11,7 +11,10 @@ import os, sys
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from tempfile import gettempdir
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+
+if os.path.exists(
+        os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'), 'gspread_rpa')):
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 from gspread_rpa import CellIndex, GridIndex, GoogleSheets
 
 TMP = gettempdir()
@@ -80,6 +83,7 @@ if __name__ == "__main__":
     r = gs.revision_list_mtime()[-1]
     logger.info("save last revision: {}".format(r))
     with open (os.path.join(TMP, '{}-{}.ods'.format(os.path.basename(__file__), r.id)), 'wb') as fd:
+        logger.info ('{}-{}.ods'.format(os.path.basename(__file__), r.id))
         gs.file_export (fd, revision_id=r.id)
 
     logger.info("")
