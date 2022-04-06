@@ -44,16 +44,21 @@ def retry(tries, delay=3, backoff=2, except_retry=[]):
                 except Exception as e:
                     err_name = "{}.{}".format(e.__class__.__module__ ,  e.__class__.__name__)
                     err_code = None
-                    err_code = [i['code'] for i in e.args if 'code' in i]
-                    err_code = int(err_code[0]) if err_code else None
-                    logger.debug ("exception handling {} {}".format(err_name, err_code))
+                    try:
+                        err_code = [i['code'] for i in e.args if 'code' in i]
+                        err_code = int(err_code[0]) if err_code else None
+                        logger.debug ("exception handling {} {}".format(err_name, err_code))
+                    except TypeError:
+                        # response could be HTML rather than json
+                        # <title>Error 502 (Server Error)!!1</title>
+                        pass
                     if (err_name, err_code) in except_retry:
                         pass
                     else:
-                        logger.debug ("retry.py l53: {}".format(f))
-                        logger.debug ("retry.py l54: {}".format(err_name))
-                        logger.debug ("retry.py l55: {}".format(err_code))
-                        logger.debug ("retry.py l56: {}".format(e))
+                        logger.debug ("retry.py l58: {}".format(f))
+                        logger.debug ("retry.py l59: {}".format(err_name))
+                        logger.debug ("retry.py l60: {}".format(err_code))
+                        logger.debug ("retry.py l61: {}".format(e))
                         raise e
 
                     mtries -= 1      # consume an attempt
