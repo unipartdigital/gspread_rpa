@@ -116,6 +116,7 @@ class GoogleSheets(object):
                 raise self.InitError from None
         self.client_ext = ClientRetry(self.gc.auth, self.gc.session)
         self.placeholder = []
+        self.cache_cells = []
 
     """
     id
@@ -211,6 +212,7 @@ class GoogleSheets(object):
         self.worksheet_cursor = None
         self.cell_current_position = (1, 1)
         self.spreadsheet_revision = None
+        self.clear_cache()
 
     """
     Open a spreadsheet try in order 'url', id and then title
@@ -255,7 +257,7 @@ class GoogleSheets(object):
             else:
                 pass
                 # logger.info ("spreadsheet_revision: {}".format(self.spreadsheet_revision))
-
+            self.clear_cache()
             if not any ([tab_name, tab_position, tab_id]): return
 
         self.worksheet_cursor = None
@@ -302,6 +304,7 @@ class GoogleSheets(object):
                 (i,w) for (i,w) in
                 enumerate(self.worksheets()) if i == int(0)]
             assert self.worksheet_cursor, "error in open tab position: {}".format(0)
+        self.clear_cache()
 
     """
     return a list with all the fields for each revision available
@@ -477,27 +480,53 @@ class GoogleSheets(object):
             self.worksheet_cursor, self.worksheet_cursor.col_count, self.worksheet_cursor.row_count))
 
     """
+    clear all cached data
+    """
+    def clear_cache (self):
+        self.cache_cells = []
+
+    """
     lookup match in search_direction  X (col) or Y (row)
     return a list of GridIndex (start.col, start.row, end.col, end.row) if match else None
     the result list is sorted with the longest at the end
 
-    as the funtion us regexpr it may be needed to validate by fetching the data
+    as the funtion use regexpr it may be needed to validate by fetching the data
     """
     def lookup_match (self, match=[], search_direction='col', default_regex=r"\b({})\b"):
         assert self.worksheet_cursor, "worksheet not open"
-        match_list = [
-            compile(default_regex.format(m), IGNORECASE) for m in match]
-        logger.debug ("match_list: {}".format (match_list))
+
+        if not self.cache_cells:
+            data = self.get_values()
+            self.cache_cells = [
+                [
+                    gspread.Cell(row=nrow+1, col=ncol+1, value=val) for ncol,val in enumerate(row)
+                ] for nrow,row in enumerate(data)]
+
+        rs = ""
+        for i in match[:-1]:
+            rs += default_regex.format(i) + "|" if i else ''
+        rs += default_regex.format(match[-1]) if match[-1] else '\b'
+        logger.info ("r: {}".format(rs))
+        rc = compile(rs, IGNORECASE)
+
         cell_find_list = []
-        for match in match_list:
-            cell_find_list += self.worksheet_cursor.findall(match)
-        logger.debug("findall: {}".format(cell_find_list))
+        for i in self.cache_cells:
+            for j in i:
+                if rc.search (j.value):
+                    cell_find_list.append (j)
+                elif j.value == '':
+                    if cell_find_list and search_direction in ('col', 'x') and (
+                            cell_find_list[-1].row == j.row and cell_find_list[-1].col == j.col - 1):
+                        cell_find_list.append (j)
+                    elif cell_find_list and search_direction in ('row', 'y') and (
+                            cell_find_list[-1].col == j.col and cell_find_list[-1].row == j.row - 1):
+                        cell_find_list.append (j)
+
+        logger.debug("find: {}".format(cell_find_list))
         if search_direction.lower() in ('col', 'x'):
             cell_find_list.sort(key=lambda x: (int(x.row), int(x.col)), reverse=False)
         else:
             cell_find_list.sort(key=lambda x: (int(x.col), int(x.row)), reverse=False)
-        # for l in cell_find_list:
-        #     logger.info ("sorted: {}".format(l))
 
         result=[]
         ridx=GridIndex()
