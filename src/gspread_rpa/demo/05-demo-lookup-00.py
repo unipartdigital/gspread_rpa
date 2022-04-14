@@ -5,6 +5,7 @@ High Level GoogleSheet API demo
 import os, sys
 import logging
 from logging.handlers import TimedRotatingFileHandler
+from random import sample
 
 if os.path.exists(
         os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'), 'gspread_rpa')):
@@ -74,6 +75,9 @@ if __name__ == "__main__":
         ['Patrícia'  , 'Knut'     , 'Herrera'         ],
         ['Rohit'     , 'Suresh'   , 'Van Antwerpen'   ],
         ['Iunia'     , 'Jaromir'  , 'Hirano'          ],
+
+        [''          , ''         , ''                ],
+
         ['Vanesa'    , 'Azra'     , 'Ubiña'           ],
         ['Sante'     , 'Phaidra'  , 'Tomić'           ],
         ['Eun - Ji'  , 'Kirabo'   , 'Zeman'           ],
@@ -105,6 +109,11 @@ if __name__ == "__main__":
     def trim(l):
         return list(rtrim(ltrim(l)))
 
+    gid = GridIndex(1,1,10,1)
+    gs.update_cells(cells_index=gid, values=[[i for i in range(1, 10)]])
+    gid = GridIndex(1,2,1,34)
+    gs.update_cells(cells_index=gid, values=[[i for i in range(2, 35)]])
+
     logger.info ("data:\n {}".format("\n".join(["{}".format(i) for i in data])))
 
     csi = CellIndex(col=3, row=4)
@@ -118,8 +127,12 @@ if __name__ == "__main__":
 
     logger.info("")
     logger.info ("x search")
-    for i in data:
+    for i in sample(data, len(data)):
         l = trim(i)
+        if not any(l):
+            logger.info ("")
+            logger.warning ("skip empty: {}".format(l))
+            continue
         logger.info ("")
         logger.info ("lookup: {}".format(l))
         match_location = gs.lookup_match (match=l, search_direction='x')
@@ -139,7 +152,8 @@ if __name__ == "__main__":
 
     logger.info ("")
     logger.info ("y search")
-    for i in list(zip(*data)):
+    ydata=list(zip(*data))
+    for i in sample(ydata, len (ydata)):
         l = trim(i)
         logger.info ("")
         logger.info ("lookup: {}".format(l))
@@ -159,8 +173,6 @@ if __name__ == "__main__":
         else:
             raise ValueError
         logger.info ("")
-
-    gs.clear_cache()
 
     gs.remove_permission (email=demo_email)
 
