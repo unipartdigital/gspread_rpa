@@ -60,6 +60,30 @@ class GridIndex(object):
     def __eq__(self, other):
         return  self.start == other.start and self.end == other.end
 
+class DataCache(object):
+
+    def __init__(self):
+        self.cached_cells = []
+        self._expired = True
+
+    def expired(self):
+        return self._expired == True
+
+    def close(self):
+        self.cached_cells = []
+        self._expired = True
+
+    def store(self, data, cell_start=CellIndex(col=1, row=1)):
+        self.cache_cells = [
+            [
+                gspread.Cell(
+                    row=nrow + cell_start.row,
+                    col=ncol + cell_start.col,
+                    value=val
+                ) for ncol,val in enumerate(row)
+            ] for nrow,row in enumerate(data)]
+        self._expired = False
+
 class GoogleSheets(object):
 
     class AlreadyExists (Exception):
@@ -116,7 +140,7 @@ class GoogleSheets(object):
                 raise self.InitError from None
         self.client_ext = ClientRetry(self.gc.auth, self.gc.session)
         self.placeholder = []
-        self.cache_cells = []
+        self.data_cache = DataCache()
 
     """
     id
@@ -147,11 +171,13 @@ class GoogleSheets(object):
     def delete_spreadsheet(self):
         logger.info ("delete: {}".format(self.spreadsheet_cursor))
         if self.spreadsheet_cursor is not None:
-            self.gc.del_spreadsheet(self.spreadsheet_cursor.id)
-            self.spreadsheet_cursor = None
-            self.worksheet_cursor = None
-            self.cell_current_position = (1, 1)
-            self.spreadsheet_revision = None
+            try:
+                self.gc.del_spreadsheet(self.spreadsheet_cursor.id)
+            except Exception as e:
+                logger.error ("delete_spreadsheet: {}".format(e))
+                raise e
+            else:
+                self.close()
         else:
             raise self.NotFound ("delete spreadsheet not open/created")
 
@@ -212,7 +238,7 @@ class GoogleSheets(object):
         self.worksheet_cursor = None
         self.cell_current_position = (1, 1)
         self.spreadsheet_revision = None
-        self.clear_cache()
+        self.data_cache.close()
 
     """
     Open a spreadsheet try in order 'url', id and then title
@@ -257,7 +283,7 @@ class GoogleSheets(object):
             else:
                 pass
                 # logger.info ("spreadsheet_revision: {}".format(self.spreadsheet_revision))
-            self.clear_cache()
+            self.data_cache.close()
             if not any ([tab_name, tab_position, tab_id]): return
 
         self.worksheet_cursor = None
@@ -304,7 +330,7 @@ class GoogleSheets(object):
                 (i,w) for (i,w) in
                 enumerate(self.worksheets()) if i == int(0)]
             assert self.worksheet_cursor, "error in open tab position: {}".format(0)
-        self.clear_cache()
+        self.data_cache.close()
 
     """
     return a list with all the fields for each revision available
@@ -443,6 +469,7 @@ class GoogleSheets(object):
                     self.worksheet_cursor = self.worksheet_cursor[0]
             else: raise e
         else:
+            self.data_cache.close()
             logger.info("create {}".format(self.worksheet_cursor))
 
     """
@@ -468,6 +495,7 @@ class GoogleSheets(object):
         assert self.worksheet_cursor is not None, "no active worksheet to delete"
         logger.info ("delete {}".format(self.worksheet_cursor))
         self.worksheet_cursor = self.spreadsheet_cursor.del_worksheet(self.worksheet_cursor)
+        self.data_cache.close()
         self.worksheet_cursor = None
 
     """
@@ -476,14 +504,15 @@ class GoogleSheets(object):
     def resize(self, cols=None, rows=None):
         assert self.worksheet_cursor is not None, "no active worksheet to resize"
         self.worksheet_cursor.resize(cols=cols, rows=rows)
+        self.data_cache.close()
         logger.info ("{} col_count={} row_count={}".format(
             self.worksheet_cursor, self.worksheet_cursor.col_count, self.worksheet_cursor.row_count))
 
     """
     clear all cached data
     """
-    def clear_cache (self):
-        self.cache_cells = []
+    def close_cache (self):
+        self.data_cache.close()
 
     """
     lookup match in search_direction  X (col) or Y (row)
@@ -495,12 +524,9 @@ class GoogleSheets(object):
     def lookup_match (self, match=[], search_direction='col', default_regex=r"\b({})\b"):
         assert self.worksheet_cursor, "worksheet not open"
 
-        if not self.cache_cells:
+        if self.data_cache.expired():
             data = self.get_values()
-            self.cache_cells = [
-                [
-                    gspread.Cell(row=nrow+1, col=ncol+1, value=val) for ncol,val in enumerate(row)
-                ] for nrow,row in enumerate(data)]
+            self.data_cache.store (data)
 
         rs = ""
         for i in match[:-1]:
@@ -510,7 +536,7 @@ class GoogleSheets(object):
         rc = compile(rs, IGNORECASE)
 
         cell_find_list = []
-        for i in self.cache_cells:
+        for i in self.data_cache.cache_cells:
             for j in i:
                 if rc.search (j.value):
                     cell_find_list.append (j)
@@ -590,6 +616,7 @@ class GoogleSheets(object):
     def delete_cols(self, start_index, end_index=None):
         assert self.worksheet_cursor, "worksheet not open"
         self.worksheet_cursor.delete_columns(start_index, end_index=end_index)
+        self.data_cache.close()
 
     """
     delete rows from start to end
@@ -597,6 +624,7 @@ class GoogleSheets(object):
     def delete_rows(self, start_index, end_index=None):
         assert self.worksheet_cursor, "worksheet not open"
         self.worksheet_cursor.delete_rows(start_index, end_index=end_index)
+        self.data_cache.close()
 
     """
     update a single cell value
@@ -604,6 +632,7 @@ class GoogleSheets(object):
     def update_cell(self, col, row, value):
         assert self.worksheet_cursor, "worksheet not open"
         self.worksheet_cursor.update_cell(col=col, row=row, value=value)
+        self.data_cache.close()
 
     """
     Clears multiple ranges in one API call
@@ -632,6 +661,7 @@ class GoogleSheets(object):
             else:
                 raise ValueError ("clear idx {}".format(grid_idx))
         result = self.worksheet_cursor.batch_clear(ranges=range_list, **kwargs)
+        self.data_cache.close()
         return result
 
     """
@@ -679,6 +709,7 @@ class GoogleSheets(object):
                 cell_list[idx].value = v
                 idx += 1
         result = self.worksheet_cursor.update_cells(cell_list=cell_list, **kwargs)
+        self.data_cache.close()
         return result
 
 
