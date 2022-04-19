@@ -531,7 +531,7 @@ class GoogleSheets(object):
         rs = ""
         for i in match[:-1]:
             rs += default_regex.format(i) + "|" if i else ''
-        rs += default_regex.format(match[-1]) if match[-1] else '\b'
+        rs += default_regex.format(match[-1]) if match and match[-1] else '(^$)'
         logger.info ("r: {}".format(rs))
         rc = compile(rs, IGNORECASE)
 
