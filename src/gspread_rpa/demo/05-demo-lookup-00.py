@@ -129,10 +129,6 @@ if __name__ == "__main__":
     logger.info ("x search")
     for i in sample(data, len(data)):
         l = trim(i)
-        if not any(l):
-            logger.info ("")
-            logger.warning ("skip empty: {}".format(l))
-            continue
         logger.info ("")
         logger.info ("lookup: {}".format(l))
         match_location = gs.lookup_match (match=l, search_direction='x')
@@ -141,7 +137,7 @@ if __name__ == "__main__":
             r = gs.get_values (m)
             logger.info ("result: {}".format (r))
             try:
-                assert l == trim(r[0]), "unexpected result {}".format(r)
+                assert l == trim(r[0] if r else ['']), "unexpected result {}".format(r)
             except AssertionError:
                 logger.info ("{}, try next".format(r[0]))
                 continue
