@@ -421,7 +421,19 @@ class GoogleSheets(object):
             """ ori clean up"""
             for w in self.worksheets():
                 if w.id in wid_ori:
-                    self.spreadsheet_cursor.del_worksheet(w)
+                    try:
+                        self.spreadsheet_cursor.del_worksheet(w)
+                    except Exception as e:
+                        err_name = "{}.{}".format(e.__class__.__module__ ,  e.__class__.__name__)
+                        err_code = None
+                        err_code = [i['code'] for i in e.args if 'code' in i]
+                        err_code = int(err_code[0]) if err_code else None
+                        logger.debug ("exception handling {} {}".format(err_name, err_code))
+                        if err_code == 400:
+                            # handle protected cell or object
+                            logger.warning ("434: {}".format(e))
+                        else:
+                            raise e
             """ cp from src to self """
             for w in src.worksheets():
                 w.copy_to(self.spreadsheet_cursor.id)
