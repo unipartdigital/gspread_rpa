@@ -431,15 +431,31 @@ class GoogleSheets(object):
                         logger.debug ("exception handling {} {}".format(err_name, err_code))
                         if err_code == 400:
                             # handle protected cell or object
-                            logger.warning ("434: {}".format(e))
+                            logger.warning ("L434: {}".format(e))
                         else:
                             raise e
             """ cp from src to self """
             for w in src.worksheets():
+                logger.info ("COPY {}.copy_to({})".format(w, self.spreadsheet_cursor.id))
                 w.copy_to(self.spreadsheet_cursor.id)
             """ copy prepand with 'Copy of' """
             for w in self.worksheets():
-                w.update_title(w.title.replace("Copy of", "").strip())
+                try:
+                    logger.info (
+                        "UPDATE {}.update_title({})".format(w, w.title.replace("Copy of", "").strip())
+                    )
+                    w.update_title(w.title.replace("Copy of", "").strip())
+                except Exception as e:
+                    err_name = "{}.{}".format(e.__class__.__module__ ,  e.__class__.__name__)
+                    err_code = None
+                    err_code = [i['code'] for i in e.args if 'code' in i]
+                    err_code = int(err_code[0]) if err_code else None
+                    logger.debug ("exception handling {} {}".format(err_name, err_code))
+                    if err_code == 400:
+                        # handle protected cell or object
+                        logger.warning ("L456: {}".format(e))
+                    else:
+                        raise e
             self.open(tab_name="{}".format(self))
             self.delete_worksheet()
         except Exception as e:
