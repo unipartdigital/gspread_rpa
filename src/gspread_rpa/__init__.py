@@ -635,7 +635,7 @@ class GoogleSheets(object):
             range_name = "{}:{}".format(s, e)
         else:
             range_name = None
-        result = self.worksheet_cursor.get_values(range_name=range_name)
+        result = self.worksheet_cursor.get_values(range_name=range_name, **kwargs)
         return result
 
     """
@@ -739,6 +739,32 @@ class GoogleSheets(object):
         result = self.worksheet_cursor.update_cells(cell_list=cell_list, **kwargs)
         self.data_cache.close()
         return result
+
+    """
+    refresh_ref
+    try to refresh the reference in a spreadsheet by overwriting the same formula
+    return the number of reference still unresoved in the spreadsheet
+    """
+    def refresh_ref (self):
+        ref_count = 0
+        t = self.spreadsheet_title()
+        for w in self.worksheets():
+            logger.info ("s {} w {}".format(t, w))
+            self.open(tab_id=w.id)
+            match_location = self.lookup_match (match=['#REF!'], default_regex=r"^{}$")
+            for m in match_location:
+                logger.info ("refresh {}: {}".format(w, m))
+                v = self.get_values(m, value_render_option=ValueRenderOption.formula)
+                try:
+                    self.update_cells (m, v, value_input_option=ValueInputOption.user_entered)
+                except Exception as e:
+                    logger.warning ("refresh_ref {}".format(e))
+            match_location = self.lookup_match (match=['#REF!'], default_regex=r"^{}$")
+            for m in match_location:
+                ref_count += 1
+                logger.warning ("refresh ref unresolved {} {}".format(w, m))
+        if ref_count > 0: logger.info ("refresh_ref {} unresolved ref in {}".format(ref_count, t))
+        return ref_count
 
 
     """

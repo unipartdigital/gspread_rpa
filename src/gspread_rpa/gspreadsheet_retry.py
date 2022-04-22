@@ -230,7 +230,7 @@ class WorksheetRetry(Worksheet):
     @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     def get_values(self, range_name=None, **kwargs):
         """Returns a list of lists containing all cells' values as strings."""
-        return super(type(self), self).get_values(range_name)
+        return super(type(self), self).get_values(range_name, **kwargs)
 
     @retry(tries=15, delay=2, backoff=2, except_retry=[error_quota_req])
     def get_all_values(self, **kwargs):
