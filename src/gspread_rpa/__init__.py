@@ -708,7 +708,8 @@ class GoogleSheets(object):
                     values=[[1, 8, 6, 4, 2]])
     KO use transpose=True or pass the data as : [[1], [8], [6], [4], [2]]
     """
-    def update_cells(self, cells_index, values, transpose=False, **kwargs):
+    def update_cells(self, cells_index, values, transpose=False,
+                     value_input_option=ValueInputOption.user_entered,**kwargs):
         assert self.worksheet_cursor, "worksheet not open"
         start_col = 0
         start_row = 0
@@ -736,7 +737,8 @@ class GoogleSheets(object):
             for v in c:
                 cell_list[idx].value = v
                 idx += 1
-        result = self.worksheet_cursor.update_cells(cell_list=cell_list, **kwargs)
+        result = self.worksheet_cursor.update_cells(
+            cell_list=cell_list, value_input_option=value_input_option, **kwargs)
         self.data_cache.close()
         return result
 
