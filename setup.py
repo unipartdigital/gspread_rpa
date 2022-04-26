@@ -29,7 +29,7 @@ setup(
     packages=['gspread_rpa'],
     package_dir={'gspread_rpa': os.path.join('src', 'gspread_rpa')},
     package_data={'': pkg_data},
-    requires=['gspread'],
+    install_requires=['gspread'],
     license='GPLv3',
     classifiers=[
         'Environment :: Console',
