@@ -33,6 +33,9 @@ gspread_rpa_demo:$(PIPM) $(PIPN) clean
 dist:
 	$(PYTHON) -m build -n
 
+localpip: dist
+	$(PYTHON) -m pip download gspread-rpa -d localpip --only-binary=:all: -f ./dist/
+
 clean:
 	$(shell find . -type f -name "*~" -delete)
 	$(shell find . -type f -name "*.log" -delete)
@@ -46,11 +49,19 @@ distclean: clean
 	$(shell find "dist" -type f -delete)
 	$(shell find . -name "dist" -delete)
 
+localpipclean:
+	$(shell test -d localpip && find localpip -type f -delete)
+	$(shell find . -name "localpip" -type d -delete)
+
 help:
 	@echo
 	@echo "target"
 	@echo "make clean"
 	@echo "make main"
+	@echo "dist"
+	@echo "distclean"
+	@echo "localpip"
+	@echo "localpipclean"
 	@echo "make upgrade"
 	@echo "make $(PIPM)"
 	@echo "make $(PIPN)"
